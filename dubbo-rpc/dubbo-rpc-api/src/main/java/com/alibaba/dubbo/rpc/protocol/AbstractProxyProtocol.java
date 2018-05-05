@@ -33,6 +33,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * AbstractProxyProtocol
  */
+
+/**
+ * Q:为什么absProtocol和httpProtocol中还嵌入一层absProxyProtocol的代理？
+ *
+ * */
 public abstract class AbstractProxyProtocol extends AbstractProtocol {
 
     private final List<Class<?>> rpcExceptions = new CopyOnWriteArrayList<Class<?>>();
@@ -44,7 +49,7 @@ public abstract class AbstractProxyProtocol extends AbstractProtocol {
 
     public AbstractProxyProtocol(Class<?>... exceptions) {
         for (Class<?> exception : exceptions) {
-            addRpcException(exception);
+            addRpcException(exception); /**增加具体的异常信息类,以便在调用异常的时候抛出*/
         }
     }
 
@@ -74,6 +79,8 @@ public abstract class AbstractProxyProtocol extends AbstractProtocol {
                 exporterMap.remove(uri);
                 if (runnable != null) {
                     try {
+                        /**这边的Runnable是在unexport的时候调用,这边的功能粒度有点乱,
+                         doExprt中返回了unexport的句柄*/
                         runnable.run();
                     } catch (Throwable t) {
                         logger.warn(t.getMessage(), t);
@@ -86,17 +93,20 @@ public abstract class AbstractProxyProtocol extends AbstractProtocol {
     }
 
     public <T> Invoker<T> refer(final Class<T> type, final URL url) throws RpcException {
+        /**获取Invoker对象进行用作调用*/
         final Invoker<T> tagert = proxyFactory.getInvoker(doRefer(type, url), type, url);
+
         Invoker<T> invoker = new AbstractInvoker<T>(type, url) {
             @Override
             protected Result doInvoke(Invocation invocation) throws Throwable {
                 try {
-                    Result result = tagert.invoke(invocation);
+                    Result result = tagert.invoke(invocation);/**Invoker对象调用,转化成类似于本地的调用*/
                     Throwable e = result.getException();
                     if (e != null) {
                         for (Class<?> rpcException : rpcExceptions) {
                             if (rpcException.isAssignableFrom(e.getClass())) {
                                 throw getRpcException(type, url, invocation, e);
+                                /**此处抛出先前注册的异常*/
                             }
                         }
                     }

@@ -216,6 +216,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         }
     }
 
+    /**
+     * 具体执行暴露服务操作
+     */
     protected synchronized void doExport() {
         if (unexported) {
             throw new IllegalStateException("Already unexported!");
@@ -687,6 +690,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     private void checkDefault() {
         if (provider == null) {
+            /**创建提供者相关配置*/
             provider = new ProviderConfig();
         }
         appendProperties(provider);
